@@ -21,20 +21,51 @@ public class Client {
 
     public Client() throws IOException {
 
-        //InetSocketAddress address = new InetSocketAddress(
-        //        "127.0.0.1", 65432);
-
-        //this.channel = SocketChannel.open(address);
-        //this.channel.configureBlocking(false);
+        InetSocketAddress address = new InetSocketAddress(
+                "127.0.0.1", 65431);
+        this.channel = SocketChannel.open(address);
+        this.channel.configureBlocking(false);
         this.readBuffer = ByteBuffer.allocate(256);
         this.writeBuffer = ByteBuffer.allocate(256);
     }
+    
+    public String receivePrompt(){
+        
+        String prompt = "";
+        
 
-    public boolean sendMessage(String message) {
+        try {
+            
+            channel.read(readBuffer);
+            readBuffer.flip();
 
+            boolean end = false;
+
+            while (!end && readBuffer.hasRemaining()) {
+
+                char c = readBuffer.getChar();
+                if (c == '\r' || c == '\n') {
+                    end = true;
+                }
+
+                prompt += c;
+            }
+
+            readBuffer.clear();
+            readBuffer.flip();
+
+        } catch (IOException ex) {
+            prompt = null;
+        }
+        
+        return prompt;
+    }
+    
+    public boolean sendPromptAnswer(String answer){
+        
         boolean success = true;
 
-       /* this.writeBuffer.put(message.getBytes());
+        this.writeBuffer.put(answer.getBytes());
         this.writeBuffer.flip();
         try {
             channel.write(this.writeBuffer);
@@ -42,44 +73,145 @@ public class Client {
             success = false;
         }
 
-        writeBuffer.clear();*/
+        writeBuffer.clear();
+
+        this.writeBuffer.flip();
+        
+        return success;
+    }
+    
+    
+    public boolean login(String username, String password) {
+
+        boolean success;
+        boolean success1 = true;
+        boolean success2 = true;
+
+        this.writeBuffer.put(username.getBytes());
+        this.writeBuffer.flip();
+        try {
+            channel.write(this.writeBuffer);
+        } catch (IOException ex) {
+            success1 = false;
+        }
+
+        writeBuffer.clear();
+
+        this.writeBuffer.flip();
+
+        this.writeBuffer.put(password.getBytes());
+        this.writeBuffer.flip();
+        try {
+            channel.write(this.writeBuffer);
+        } catch (IOException ex) {
+            success2 = false;
+        }
+        
+        writeBuffer.clear();
+        writeBuffer.flip();
+
+        success = success1 && success2;
+
+        return success;
+    }
+    
+    public boolean sendMessage(Message message) {
+
+        boolean success;
+        boolean success1 = true;
+        boolean success2 = true;
+
+        this.writeBuffer.put(message.getRecipient().getBytes());
+        this.writeBuffer.flip();
+        try {
+            channel.write(this.writeBuffer);
+        } catch (IOException ex) {
+            success1 = false;
+        }
+
+        writeBuffer.clear();
+
+        this.writeBuffer.flip();
+
+        this.writeBuffer.put(message.getMessage().getBytes());
+        this.writeBuffer.flip();
+        try {
+            channel.write(this.writeBuffer);
+        } catch (IOException ex) {
+            success2 = false;
+        }
+        
+        writeBuffer.clear();
+        writeBuffer.flip();
+
+        success = success1 && success2;
 
         return success;
     }
 
     public Message receiveMessage() {
 
+        Message mess = null;
         String message = "";
+        String sender = "";
 
-        /*try {
+        try {
             channel.read(readBuffer);
             readBuffer.flip();
-            
+
             boolean end = false;
-            
+
             while (!end && readBuffer.hasRemaining()) {
 
                 char c = readBuffer.getChar();
                 if (c == '\r' || c == '\n') {
                     end = true;
                 }
-                
-                message+=c;
+
+                sender += c;
             }
 
             readBuffer.clear();
-            
+
+        } catch (IOException ex) {
+            sender = null;
+        }
+
+        readBuffer.flip();
+
+        try {
+            channel.read(readBuffer);
+            readBuffer.flip();
+
+            boolean end = false;
+
+            while (!end && readBuffer.hasRemaining()) {
+
+                char c = readBuffer.getChar();
+                if (c == '\r' || c == '\n') {
+                    end = true;
+                }
+
+                message += c;
+            }
+
+            readBuffer.clear();
+            readBuffer.flip();
+
         } catch (IOException ex) {
             message = null;
-        }*/
-        
-        Message mess = new Message("", message);
+        }
+
+        if (sender != null && message != null) {
+
+            mess = new Message(sender, message, "test");
+        }
 
         return mess;
     }
-    
-    public void closeClient() throws IOException{
-        
+
+    public void closeClient() throws IOException {
+
         this.channel.close();
     }
 }
