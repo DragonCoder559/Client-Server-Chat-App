@@ -7,6 +7,8 @@ package clientserver;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /**
@@ -140,16 +142,20 @@ public class ClientUI extends javax.swing.JFrame {
         String message = messageField.getText();
         messageField.setText("");
 
-        Message mess = new Message("Me", message, "");
+        Message mess = new Message("CNC", message, "CNC");
 
-        if (client != null && !client.sendMessage(mess)) {
-
-            JOptionPane.showMessageDialog(null,
-                    "Could not send message to Server");
-        } else {
-            messages.add(mess);
-            model.setMessages(messages);
-            model.fireTableDataChanged();
+        try {
+            if (!client.sendMessage(mess)) {
+                
+                JOptionPane.showMessageDialog(null,
+                        "Could not send message to Server");
+            } else {
+                messages.add(mess);
+                model.setMessages(messages);
+                model.fireTableDataChanged();
+            }
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ClientUI.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_sendButtonActionPerformed
 
@@ -158,23 +164,26 @@ public class ClientUI extends javax.swing.JFrame {
     }//GEN-LAST:event_messageFieldKeyTyped
 
     private void messageFieldKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_messageFieldKeyPressed
-        System.out.println(evt.getKeyCode());
+
         if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
-            System.out.println("Enter");
-            String message = messageField.getText();
-            messageField.setText("");
-
-            Message mess = new Message("Me", message, "");
-
-            if (client != null && !client.sendMessage(mess)) {
-
-                JOptionPane.showMessageDialog(null,
-                        "Could not send message to Server");
-            } else {
-
-                messages.add(mess);
-                model.setMessages(messages);
-                model.fireTableDataChanged();
+            try {
+                String message = messageField.getText();
+                messageField.setText("");
+                
+                Message mess = new Message("CNC", message, "CNC");
+                
+                if (!client.sendMessage(mess)) {
+                    
+                    JOptionPane.showMessageDialog(null,
+                            "Could not send message to Server");
+                } else {
+                    
+                    messages.add(mess);
+                    model.setMessages(messages);
+                    model.fireTableDataChanged();
+                }
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ClientUI.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }//GEN-LAST:event_messageFieldKeyPressed
