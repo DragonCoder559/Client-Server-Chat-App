@@ -69,8 +69,8 @@ def create_account(conn):
 
     username = jpysocket.jpydecode(conn.recv(1024))
 
-    message2 = jpysocket.jpyencode("Create a password: ")
-    conn.send(message2)
+    #message2 = jpysocket.jpyencode("Create a password: ")
+    conn.send(jpysocket.jpyencode("Create a password: "))
     password = jpysocket.jpydecode(conn.recv(1024))
 
     insert_user(username, password)
@@ -110,7 +110,8 @@ def handle_message(conn, username, clients):
     print("Recipient: " + recipient)
 
     for client in clients:
-        if client.username == recipient :
+        print(client.username)
+        if client.username == recipient:
 
             print()
             print(username + " = " + client.username)
