@@ -26,7 +26,7 @@ public class Client {
      */
     public Client() throws IOException { 
         //Localhost IP right now, can be changed
-        socket = new Socket("127.0.0.1", 65431); 
+        socket = new Socket("10.0.0.94", 65431); 
         in = new DataInputStream(new BufferedInputStream(
                 socket.getInputStream()));
         out = new DataOutputStream(socket.getOutputStream());
@@ -80,6 +80,13 @@ public class Client {
         
         boolean success;
         String message = receive(); //Server sends prompt messages
+        
+        if (message.equals("Error: Incorrect option")){
+            
+            JOptionPane.showMessageDialog(null, message);
+            
+            return null;
+        }
 
         String username = JOptionPane.showInputDialog(message);
 

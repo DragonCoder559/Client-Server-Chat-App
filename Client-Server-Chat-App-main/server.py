@@ -4,9 +4,9 @@ import jpysocket
 from ServerMethods import *
 
 # HOST = "172.31.44.231"
-HOST = "127.0.0.1"  # Localhost IP, can and will be changed when needed
+HOST = "10.0.0.94"  # Localhost IP, can and will be changed when needed
 PORT = 65431  # Port number to listen to that isn't dedicated to other services
-clients = [] # Global list of connected Clients
+clients = []  # Global list of connected Clients
 
 
 # A class that holds a Client's connection and username
@@ -50,7 +50,7 @@ def handle_client(conn, addr):
         user_exits = find_user(user)
         print(user_exits)
 
-        client_exits = False;
+        client_exits = False
 
         if user_exits:
             print ("Here?")
@@ -58,16 +58,23 @@ def handle_client(conn, addr):
                 if c.username == user:
                     print(c.username + " = " + user)
                     client = c
-                    client_exits = True;
+                    client_exits = True
 
-        if not user_exits or not client_exits:
+            if not client_exits:
+                error_msg = jpysocket.jpyencode("Cannot locate user. Switching to Global Messaging")
+                conn.send(error_msg)
+                # Connect the user to global messaging if they cannot locate the user
+                messaging = "G"
+
+            else:
+                success_msg = jpysocket.jpyencode("Found User! Connecting...")
+                conn.send(success_msg)
+        else:
             error_msg = jpysocket.jpyencode("Cannot locate user. Switching to Global Messaging")
             conn.send(error_msg)
             # Connect the user to global messaging if they cannot locate the user
             messaging = "G"
-        else:
-            success_msg = jpysocket.jpyencode("Found User! Connecting...")
-            conn.send(success_msg)
+
 
     # Handles global or private requests
     # Then applies needed functionality to get user connected
