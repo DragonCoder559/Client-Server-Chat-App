@@ -12,7 +12,7 @@ def create_table():
     conn.commit()
     conn.close()
 
-
+# Checks to see if the given login information is valid
 def check_login(username, password):
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
@@ -27,22 +27,30 @@ def check_login(username, password):
     else:
         return False
 
-
+# Inserts a new user into the database
 def insert_user(username, password):
+
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-    conn.commit()
+
+    c = conn.cursor()
+    c.execute("SELECT EXISTS(SELECT 1 FROM users WHERE username=?)", (username,))
+    user_exists = c.fetchone()[0]
+
+    if not user_exists:
+        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        conn.commit()
 
     c.close()
     conn.close()
+
+    return user_exists;
 
 
 # Sends prompt to client to begin interacting with the server
 def prompt_client(conn):
     prompt = jpysocket.jpyencode("Would you like to (A) Create an account or (B) Use an existing account")
     conn.send(prompt)
-
 
 
 # Handles whether to log a user in, or have them create a profile
@@ -69,13 +77,17 @@ def create_account(conn):
 
     username = jpysocket.jpydecode(conn.recv(1024))
 
-    #message2 = jpysocket.jpyencode("Create a password: ")
-    conn.send(jpysocket.jpyencode("Create a password: "))
+    message2 = jpysocket.jpyencode("Create a password: ")
+    conn.send(message2)
     password = jpysocket.jpydecode(conn.recv(1024))
 
-    insert_user(username, password)
+    user_exits = insert_user(username, password)
 
-    message3 = jpysocket.jpydecode("You are all registered".encode())
+    if user_exits:
+        message3 = jpysocket.jpyencode("User already exists")
+    else:
+        message3 = jpysocket.jpyencode("You are all registered!")
+
     conn.send(message3)
 
     return username
@@ -98,8 +110,9 @@ def log_in(conn):
         conn.send(jpysocket.jpyencode("You are all logged in"))
     return username
 
-def handle_message(conn, username, clients):
 
+# Handles messaging on the global chat
+def handle_global_message(conn, username, clients):
     sender = jpysocket.jpydecode(conn.recv(1024))
     print("Sender: " + sender)
 
@@ -110,19 +123,50 @@ def handle_message(conn, username, clients):
     print("Recipient: " + recipient)
 
     for client in clients:
-        print(client.username)
-        if client.username == recipient:
-
-            print()
-            print(username + " = " + client.username)
-            print()
-
+        if client.username != sender:
             client.conn.send(jpysocket.jpyencode(sender))
             client.conn.send(jpysocket.jpyencode(message))
 
 
+# Handles private messaging between two specific clients
+def handle_private_message(conn, client):
+
+    sender = jpysocket.jpydecode(conn.recv(1024))
+    print("Sender: " + sender)
+
+    message = jpysocket.jpydecode(conn.recv(1024))
+    print("Message: " + message)
+
+    recipient = jpysocket.jpydecode(conn.recv(1024))
+    print("Recipient: " + recipient)
+
+    # Find the recipient client
+
+    client.conn.send(jpysocket.jpyencode(sender))
+    client.conn.send(jpysocket.jpyencode(message))
 
 
+# Receive a signal from the client for what type of messaging they would like
+def connect(conn):
+    option = jpysocket.jpydecode(conn.recv(1024))
+
+    return option
 
 
+# When the user enters the username of another client they want
+# to connect to, this method connects to the database to see if the user
+# does exist
+def find_user(username):
+    try:
+        conn = sqlite3.connect("users.db")
+        c = conn.cursor()
+        c.execute("SELECT EXISTS(SELECT 1 FROM users WHERE username=?)", (username,))
+        user_exists = c.fetchone()[0]
 
+        c.close()
+        conn.close()
+
+        return bool(user_exists)
+    except Exception as e:
+        print("Error: ", e)
+        return False

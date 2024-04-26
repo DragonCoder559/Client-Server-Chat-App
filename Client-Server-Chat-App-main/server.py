@@ -1,13 +1,15 @@
-import socket
-import threading
-import random  # This import is for testing the multiple clients
+import socket, threading
+import jpysocket
+
 from ServerMethods import *
 
-HOST = "10.0.0.94"  # Localhost IP, can and will be changed when needed
+# HOST = "172.31.44.231"
+HOST = "127.0.0.1"  # Localhost IP, can and will be changed when needed
 PORT = 65431  # Port number to listen to that isn't dedicated to other services
-clients = []
+clients = [] # Global list of connected Clients
 
 
+# A class that holds a Client's connection and username
 class Client:
     def __init__(self, conn):
         self.conn = conn
@@ -18,7 +20,6 @@ class Client:
 # and directing them to the right place
 def handle_client(conn, addr):
     print("Connected by {addr}")
-    print(random.random())
 
     prompt_client(conn)
 
@@ -30,22 +31,53 @@ def handle_client(conn, addr):
 
     for client in clients:
         if client.conn == conn:
-            client.username = username
-            print("Client: " + username)
-
-    print(len(clients))
-    for client in clients:
-        print("Client: " + client.username)
-
-
+            client.username = username  # Sets username to Client object
+            print("Client " + username)
 
     print()
 
-    while True:
-        handle_message(conn, username, clients)
+    messaging = connect(conn)
 
-    conn.close()
-    print("Connection closed by {addr}")
+    client = None
+
+    if messaging == "P":
+        # Sends messages to the user to see which other user they want
+        # to chat with
+        user_message = jpysocket.jpyencode("Enter the User you would like to Message")
+        conn.send(user_message)
+        user = jpysocket.jpydecode(conn.recv(1024))
+        print(user)
+        user_exits = find_user(user)
+        print(user_exits)
+
+        client_exits = False;
+
+        if user_exits:
+            print ("Here?")
+            for c in clients:  # Finds requested Client
+                if c.username == user:
+                    print(c.username + " = " + user)
+                    client = c
+                    client_exits = True;
+
+        if not user_exits or not client_exits:
+            error_msg = jpysocket.jpyencode("Cannot locate user. Switching to Global Messaging")
+            conn.send(error_msg)
+            # Connect the user to global messaging if they cannot locate the user
+            messaging = "G"
+        else:
+            success_msg = jpysocket.jpyencode("Found User! Connecting...")
+            conn.send(success_msg)
+
+    # Handles global or private requests
+    # Then applies needed functionality to get user connected
+    # To whatever option they picked
+    while True:
+        if messaging == "G":
+            handle_global_message(conn, username, clients)
+
+        elif messaging == "P":
+            handle_private_message(conn, client)
 
 
 # Main handles creating the socket server and accepting clients
@@ -55,14 +87,14 @@ def main():
         s.listen()
         print("Server is listening...")
         while True:
-            conn, addr = s.accept()
+            conn, addr = s.accept()  # Establishes connection
 
             client_thread = threading.Thread(target=handle_client, args=(conn, addr))
-            client_thread.start()
+            client_thread.start()  # Creates and starts thread to handle each new connected client
 
-            client = Client(conn)
+            client = Client(conn)  # Creates client class object
 
-            clients.append(client)
+            clients.append(client)  # Adds client to list
 
 
 # From ServerMethods, creates a table for the sqlite database to use
